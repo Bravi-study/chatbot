@@ -117,11 +117,7 @@ def load_stylegan_generator():
             stylegan = pickle.load(f)
         # Получаем базовую модель
         generator = stylegan["G_ema"]
-        # Копируем состояние на новое устройство
-        state_dict = generator.state_dict()
-        generator = type(generator)(*generator.init_args, **generator.init_kwargs)
         generator.to(device)
-        generator.load_state_dict(state_dict)
         generator.eval()
         return generator
     except Exception as e:
@@ -182,6 +178,7 @@ def generate_image(model, device):
             torch.cuda.empty_cache()
 
         return image
+
     except Exception as e:
         st.error(f"Ошибка генерации изображения: {str(e)}")
         return None
@@ -205,25 +202,16 @@ if download_and_extract_models():
             selected_style_name = st.selectbox(
                 "Стиль портрета", options=style_names, key="style_select"
             )
-
-            # Больше пространства перед надписью
             st.markdown(
                 "<div style='flex-grow: 1; min-height: 50vh'></div>", unsafe_allow_html=True
             )
-
-            # Обновленная надпись внизу сайдбара
             st.markdown(
                 '<div class="sidebar-glory">Да славится <a href="https://dls.samcs.ru/">DLS</a>!</div>',
                 unsafe_allow_html=True,
             )
 
-        # Получаем данные выбранного стиля
         selected_style = get_style_by_name(selected_style_name)
-
-        # Загружаем модель без кэширования
         model = load_model(selected_style["file"])
-
-        # Адаптация окончания для названия стиля
         ending = "а" if selected_style_name != "Аниме" else ""
         st.title(f"StyleGAN – генератор {selected_style_name.lower()}{ending}!")
 
