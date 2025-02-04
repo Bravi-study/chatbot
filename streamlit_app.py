@@ -121,7 +121,7 @@ if download_and_extract_models():
                     st.warning("Не удалось загрузить модель!.")
                 else:
                     if st.button("Создать портрет", key="generate_btn"):
-                        with st.spinner("Готовим впечатление..."):
+                        with st.spinner("Готовим шедевр..."):
                             z = torch.randn(1, 512, device=device)
                             with torch.no_grad():
                                 ws = model.mapping(z, None)
@@ -139,7 +139,7 @@ if download_and_extract_models():
                             st.image(
                                 image,
                                 clamp=True,
-                                caption="Ваше впечатление",
+                                caption="Ну, как вам?",
                                 use_container_width=True,
                             )
 
