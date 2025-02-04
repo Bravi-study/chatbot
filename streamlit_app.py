@@ -1,56 +1,103 @@
-import streamlit as st
-from openai import OpenAI
+import logging
+import pickle
+import sys
 
-# Show title and description.
-st.title("💬 Chatbot2")
-st.write(
-    "This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses. "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
-    "You can also learn how to build this app step by step by [following our tutorial](https://docs.streamlit.io/develop/tutorials/llms/build-conversational-apps)."
+import streamlit as st
+import torch
+
+logging.basicConfig(level=logging.INFO)
+
+OUTPUT_SIZE = 512
+
+if "/stylegan" not in sys.path:
+    sys.path.extend(["/stylegan", "stylegan"])
+
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+elif torch.mps.is_available():
+    device = torch.device("mps")
+else:
+    device = torch.device("cpu")
+
+st.set_page_config(page_title="StyleGAN Image Generator", layout="wide")
+
+st.markdown(
+    """
+    <style>
+        .main {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        .css-1v0mbdj.e115fcil1 {
+            text-align: center;
+        }
+    </style>
+""",
+    unsafe_allow_html=True,
 )
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-openai_api_key = st.text_input("OpenAI API Key", type="password")
-if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
-else:
 
-    # Create an OpenAI client.
-    client = OpenAI(api_key=openai_api_key)
+@st.cache_resource
+def load_stylegan_generator():
+    try:
+        with open("ffhq.pkl", "rb") as f:
+            stylegan = pickle.load(f)
+        generator = stylegan["G_ema"]
+        generator.to(device)
+        generator.eval()
+        return generator
+    except Exception as e:
+        st.error(f"Error loading StyleGAN model: {str(e)}")
+        return None
 
-    # Create a session state variable to store the chat messages. This ensures that the
-    # messages persist across reruns.
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
 
-    # Display the existing chat messages via `st.chat_message`.
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+@st.cache_resource
+def load_model():
+    try:
+        model = load_stylegan_generator()
+        if model is None:
+            return None
 
-    # Create a chat input field to allow the user to enter a message. This will display
-    # automatically at the bottom of the page.
-    if prompt := st.chat_input("What is up?"):
+        checkpoint = torch.load("imp_model.pt", map_location=device)
+        model.load_state_dict(checkpoint["generator_state_dict"])
+        return model
+    except Exception as e:
+        st.error(f"Error loading checkpoint: {str(e)}")
+        return None
 
-        # Store and display the current prompt.
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
 
-        # Generate a response using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
-            stream=True,
-        )
+try:
+    model = load_model()
 
-        # Stream the response to the chat using `st.write_stream`, then store it in 
-        # session state.
-        with st.chat_message("assistant"):
-            response = st.write_stream(stream)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+    with st.container():
+        col1, col2, col3 = st.columns([1, 2, 1])
+
+        with col2:
+            st.title("StyleGAN Image Generator")
+
+            if model is None:
+                st.warning("Model failed to load. Please check the model files.")
+            else:
+                if st.button("Generate Image", key="generate_btn"):
+                    with st.spinner("Generating image..."):
+                        z = torch.randn(1, 512, device=device)
+                        with torch.no_grad():
+                            ws = model.mapping(z, None)
+                            images = model.synthesis(ws, noise_mode="const")
+
+                        images = torch.nn.functional.interpolate(
+                            images,
+                            size=(OUTPUT_SIZE, OUTPUT_SIZE),
+                            mode="bilinear",
+                            align_corners=False,
+                        )
+                        image = images[0].permute(1, 2, 0).add(1).div(2).cpu().numpy()
+
+                        # Center the image display
+                        st.image(
+                            image, clamp=True, caption="Generated Image", use_container_width=True
+                        )
+
+except Exception as e:
+    st.error(f"An error occurred: {str(e)}")
