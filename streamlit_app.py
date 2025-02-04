@@ -1,3 +1,4 @@
+import gc
 import logging
 import os
 import pickle
@@ -10,6 +11,12 @@ import streamlit as st
 import torch
 
 logging.basicConfig(level=logging.INFO)
+
+# Add after initial imports and before page config
+if "current_model" not in st.session_state:
+    st.session_state.current_model = None
+if "current_style" not in st.session_state:
+    st.session_state.current_style = None
 
 # Настройка страницы
 st.set_page_config(
@@ -122,24 +129,61 @@ def load_stylegan_generator():
         return None
 
 
+@st.cache_resource(max_entries=1)
 def load_model(model_file: str):
     """Загрузка обученной модели выбранного стиля"""
     try:
-        # Очищаем CUDA кэш перед загрузкой
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+        # Очищаем память если загружаем новую модель
+        if st.session_state.current_model is not None:
+            del st.session_state.current_model
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
         model = load_stylegan_generator()
         if model is None:
             return None
 
-        # Загружаем чекпойнт напрямую в модель
         checkpoint = torch.load(model_file, map_location=device)
         model.load_state_dict(checkpoint["generator_state_dict"])
         model.eval()
+
+        st.session_state.current_model = model
         return model
     except Exception as e:
         st.error(f"Ошибка загрузки модели стиля {model_file}: {str(e)}")
+        return None
+
+
+def generate_image(model, device):
+    """Выделенная функция генерации изображения для лучшего управления памятью"""
+    try:
+        z = torch.randn(1, 512, device=device)
+        with torch.no_grad():
+            ws = model.mapping(z, None)
+            images = model.synthesis(ws, noise_mode="const")
+
+        # Сразу очищаем промежуточные тензоры
+        del z, ws
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+        images = torch.nn.functional.interpolate(
+            images,
+            size=(OUTPUT_SIZE, OUTPUT_SIZE),
+            mode="bilinear",
+            align_corners=False,
+        )
+        image = images[0].permute(1, 2, 0).add(1).div(2).cpu().numpy()
+
+        # Очищаем оставшиеся тензоры
+        del images
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+        return image
+    except Exception as e:
+        st.error(f"Ошибка генерации изображения: {str(e)}")
         return None
 
 
@@ -188,30 +232,14 @@ if download_and_extract_models():
         else:
             if st.button("Создать портрет", key="generate_btn"):
                 with st.spinner("Готовим шедевр..."):
-                    # Генерация случайного вектора
-                    z = torch.randn(1, 512, device=device)
-                    with torch.no_grad():
-                        # Генерация изображения
-                        ws = model.mapping(z, None)
-                        images = model.synthesis(ws, noise_mode="const")
-
-                    # Изменение размера изображения
-                    images = torch.nn.functional.interpolate(
-                        images,
-                        size=(OUTPUT_SIZE, OUTPUT_SIZE),
-                        mode="bilinear",
-                        align_corners=False,
-                    )
-                    # Преобразование тензора в изображение
-                    image = images[0].permute(1, 2, 0).add(1).div(2).cpu().numpy()
-
-                    # Отображение изображения по центру
-                    st.image(
-                        image,
-                        clamp=True,
-                        caption="Ну, как вам?",
-                        width=OUTPUT_SIZE,
-                    )
+                    image = generate_image(model, device)
+                    if image is not None:
+                        st.image(
+                            image,
+                            clamp=True,
+                            caption="Ну, как вам?",
+                            width=OUTPUT_SIZE,
+                        )
 
     except Exception as e:
         st.error(f"Произошла ошибка: {str(e)}")
