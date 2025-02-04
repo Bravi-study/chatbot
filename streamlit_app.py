@@ -69,13 +69,12 @@ if "/stylegan" not in sys.path:
     sys.path.extend(["/stylegan", "stylegan"])
 
 # Определение устройства для вычислений
-device = (
-    torch.device("cuda")
-    if torch.cuda.is_available()
-    else torch.device("mps")
-    if torch.mps.is_available()
-    else torch.device("cpu")
-)
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+elif torch.mps.is_available():
+    device = torch.device("mps")
+else:
+    device = torch.device("cpu")
 
 # Пользовательский CSS
 st.markdown(
@@ -147,7 +146,7 @@ def load_model(model_file: str):
 
 def get_style_by_name(style_name: str) -> dict:
     """Получение стиля по русскому названию"""
-    for style_key, style_data in STYLES.items():
+    for style_data in STYLES.values():  # Изменено с keys() на items()
         if style_data["name"] == style_name:
             return style_data
     return None
