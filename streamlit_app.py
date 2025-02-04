@@ -118,10 +118,10 @@ if download_and_extract_models():
                 st.title("StyleGAN – генератор импрессионизма!")
 
                 if model is None:
-                    st.warning("Model failed to load. Please check the model files.")
+                    st.warning("Не удалось загрузить модель!.")
                 else:
-                    if st.button("Generate Image", key="generate_btn"):
-                        with st.spinner("Generating image..."):
+                    if st.button("Создать портрет", key="generate_btn"):
+                        with st.spinner("Готовим впечатление..."):
                             z = torch.randn(1, 512, device=device)
                             with torch.no_grad():
                                 ws = model.mapping(z, None)
@@ -139,7 +139,7 @@ if download_and_extract_models():
                             st.image(
                                 image,
                                 clamp=True,
-                                caption="Generated Image",
+                                caption="Ваше впечатление",
                                 use_container_width=True,
                             )
 
