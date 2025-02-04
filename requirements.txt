@@ -244,7 +244,7 @@ tifffile @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_4
 timm @ file:///home/conda/feedstock_root/build_artifacts/timm_1693941800600/work
 tinycss2 @ file:///Users/builder/cbouss/perseverance-python-buildout/croot/tinycss2_1699250325251/work
 toml==0.10.2
-torch @ file:///Users/runner/miniforge3/conda-bld/libtorch_1736083042409/work
+torch==2.1.2
 torch-summary==1.4.5
 torchaudio==2.5.1
 torchinfo @ file:///home/conda/feedstock_root/build_artifacts/torchinfo_1735141362764/work
