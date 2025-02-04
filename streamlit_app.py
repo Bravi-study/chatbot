@@ -1,7 +1,3 @@
-import streamlit as st
-
-st.set_page_config(page_title="StyleGAN Image Generator", layout="wide")
-
 import logging
 import os
 import pickle
@@ -10,9 +6,17 @@ from io import BytesIO
 from zipfile import ZipFile
 
 import requests
+import streamlit as st
 import torch
 
 logging.basicConfig(level=logging.INFO)
+
+
+st.set_page_config(
+    page_title="Impressionist StyleGAN",
+    layout="wide",
+)
+st.markdown("### For the glory of [DLS](https://dls.samcs.ru/)!")
 
 MODEL_URL = "https://www.dropbox.com/s/p2fz1c8vxtkkb40/stylegan_models.zip?dl=1"
 MODEL = "photo_impressionist_portrait_trained_generator.pt"
