@@ -115,7 +115,7 @@ if download_and_extract_models():
             col1, col2, col3 = st.columns([1, 2, 1])
 
             with col2:
-                st.title("StyleGAN Image Generator")
+                st.title("StyleGAN – генератор импрессионизма!")
 
                 if model is None:
                     st.warning("Model failed to load. Please check the model files.")
