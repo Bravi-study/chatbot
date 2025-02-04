@@ -244,12 +244,12 @@ tifffile @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_4
 timm @ file:///home/conda/feedstock_root/build_artifacts/timm_1693941800600/work
 tinycss2 @ file:///Users/builder/cbouss/perseverance-python-buildout/croot/tinycss2_1699250325251/work
 toml==0.10.2
-torch==2.1.2
+torch==2.6.0
 torch-summary==1.4.5
 torchaudio==2.5.1
 torchinfo @ file:///home/conda/feedstock_root/build_artifacts/torchinfo_1735141362764/work
 torchmetrics @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_05hakmd555/croot/torchmetrics_1719910141418/work
-torchvision==0.20.1
+torchvision==0.21.0
 tornado @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_0axef5a0m0/croot/tornado_1733960501260/work
 tqdm @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_24zjwympsr/croot/tqdm_1724853942429/work
 traitlets @ file:///private/var/folders/k1/30mswbxs7r1g6zwn8y4fyt500000gp/T/abs_500m2_1wyk/croot/traitlets_1718227071952/work
