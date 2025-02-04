@@ -18,10 +18,7 @@ st.set_page_config(
 )
 
 # URL-адрес архива с моделями
-MODEL_URL = (
-    "https://www.dropbox.com/scl/fi/jp9n3uyuzlfj7a9hap5o2/"
-    "style_models.zip?rlkey=a6hkuwe135h64lidq0t1x3oja&dl=1"
-)
+MODEL_URL = "https://www.dropbox.com/s/bjk832dk5h7qe4h/style_models.zip?dl=1"
 PRETRAINED = "ffhq.pkl"
 OUTPUT_SIZE = 650
 
