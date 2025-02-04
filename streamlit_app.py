@@ -18,7 +18,10 @@ st.set_page_config(
 )
 
 # URL-адрес архива с моделями
-MODEL_URL = "https://www.dropbox.com/s/bjk832dk5h7qe4h/style_models.zip?dl=1"
+MODEL_URL = (
+    "https://www.dropbox.com/scl/fi/x83e02o8aycpssprx9kr9/"
+    "stylegan_models.zip?rlkey=rj3lgc1a7iqc0jvrs36judpre&dl=1"
+)
 PRETRAINED = "ffhq.pkl"
 OUTPUT_SIZE = 650
 
@@ -31,10 +34,6 @@ STYLES = {
     "ANIME": {
         "name": "Аниме",
         "file": "photo_anime_trained_generator.pt",
-    },
-    "CUBISM": {
-        "name": "Кубизм",
-        "file": "photo_cubism_trained_generator.pt",
     },
 }
 
