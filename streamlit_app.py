@@ -105,14 +105,18 @@ st.markdown(
 )
 
 
-@st.cache_resource
 def load_stylegan_generator():
     """Загрузка базовой модели StyleGAN"""
     try:
         with open("ffhq.pkl", "rb") as f:
             stylegan = pickle.load(f)
+        # Получаем базовую модель
         generator = stylegan["G_ema"]
+        # Копируем состояние на новое устройство
+        state_dict = generator.state_dict()
+        generator = type(generator)(*generator.init_args, **generator.init_kwargs)
         generator.to(device)
+        generator.load_state_dict(state_dict)
         generator.eval()
         return generator
     except Exception as e:
@@ -120,20 +124,33 @@ def load_stylegan_generator():
         return None
 
 
-@st.cache_resource
-def load_model(model_file):
+def load_model(model_file: str):
     """Загрузка обученной модели выбранного стиля"""
     try:
+        # Очищаем CUDA кэш перед загрузкой
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
         model = load_stylegan_generator()
         if model is None:
             return None
 
+        # Загружаем чекпойнт напрямую в модель
         checkpoint = torch.load(model_file, map_location=device)
         model.load_state_dict(checkpoint["generator_state_dict"])
+        model.eval()
         return model
     except Exception as e:
-        st.error(f"Ошибка загрузки модели стиля: {str(e)}")
+        st.error(f"Ошибка загрузки модели стиля {model_file}: {str(e)}")
         return None
+
+
+def get_style_by_name(style_name: str) -> dict:
+    """Получение стиля по русскому названию"""
+    for style_key, style_data in STYLES.items():
+        if style_data["name"] == style_name:
+            return style_data
+    return None
 
 
 # Основное приложение
@@ -141,17 +158,20 @@ if download_and_extract_models():
     try:
         # Выбор стиля в боковой панели
         with st.sidebar:
-            style_names = {style["name"]: key for key, style in STYLES.items()}
+            st.markdown("<br>" * 3, unsafe_allow_html=True)
+            style_names = [style["name"] for style in STYLES.values()]
             selected_style_name = st.selectbox(
-                "Стиль портрета", options=list(style_names.keys()), key="style_select"
+                "Стиль портрета", options=style_names, key="style_select"
             )
 
-        # Основной контент
-        selected_style = STYLES[style_names[selected_style_name]]
+        # Получаем данные выбранного стиля
+        selected_style = get_style_by_name(selected_style_name)
+
+        # Загружаем модель без кэширования
         model = load_model(selected_style["file"])
 
         # Адаптация окончания для названия стиля
-        ending = "а" if selected_style["name"] != "Аниме" else ""
+        ending = "а" if selected_style_name != "Аниме" else ""
         st.title(f"StyleGAN – генератор {selected_style_name.lower()}{ending}!")
 
         if model is None:
