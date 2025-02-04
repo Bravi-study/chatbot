@@ -16,7 +16,6 @@ st.set_page_config(
     page_title="Impressionist StyleGAN",
     layout="wide",
 )
-st.markdown("### For the glory of [DLS](https://dls.samcs.ru/)!")
 
 MODEL_URL = "https://www.dropbox.com/s/p2fz1c8vxtkkb40/stylegan_models.zip?dl=1"
 MODEL = "photo_impressionist_portrait_trained_generator.pt"
@@ -65,6 +64,12 @@ st.markdown(
         }
         .css-1v0mbdj.e115fcil1 {
             text-align: center;
+        }
+        .glory-text {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            z-index: 999;
         }
     </style>
 """,
@@ -137,6 +142,11 @@ if download_and_extract_models():
                                 caption="Generated Image",
                                 use_container_width=True,
                             )
+
+        st.markdown(
+            '<p class="glory-text">For the glory of <a href="https://dls.samcs.ru/">DLS</a>!</p>',
+            unsafe_allow_html=True,
+        )
 
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
