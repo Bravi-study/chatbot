@@ -4,4 +4,4 @@
 
 https://impression-stylegan.streamlit.app/
 
-<img src="https://github.com/Bravi-study/impressionist-stylegan/blob/main/images/screen.png" height="400"/>
+<img src="https://github.com/Bravi-study/impressionist-stylegan/blob/main/screen.png" height="400"/>
