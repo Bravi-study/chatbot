@@ -73,7 +73,7 @@ elif torch.mps.is_available():
 else:
     device = torch.device("cpu")
 
-# Пользовательский CSS
+# Обновляем CSS
 st.markdown(
     """
     <style>
@@ -82,18 +82,21 @@ st.markdown(
             margin: 0 auto;
             padding: 0 20px;
         }
-        .glory-text {
-            position: fixed;
-            left: 20px;
-            bottom: 20px;
-            z-index: 999;
-        }
         .stSelectbox {
             margin-bottom: 2rem;
         }
         .css-1v0mbdj.etr89bj1 {
             display: flex;
             justify-content: center;
+        }
+        .sidebar-glory {
+            position: fixed;
+            bottom: 16px;
+            left: 0;
+            width: 100%;
+            max-width: 17rem;
+            text-align: center;
+            padding: 1rem;
         }
     </style>
 """,
@@ -160,6 +163,17 @@ if download_and_extract_models():
                 "Стиль портрета", options=style_names, key="style_select"
             )
 
+            # Больше пространства перед надписью
+            st.markdown(
+                "<div style='flex-grow: 1; min-height: 50vh'></div>", unsafe_allow_html=True
+            )
+
+            # Обновленная надпись внизу сайдбара
+            st.markdown(
+                '<div class="sidebar-glory">Да славится <a href="https://dls.samcs.ru/">DLS</a>!</div>',
+                unsafe_allow_html=True,
+            )
+
         # Получаем данные выбранного стиля
         selected_style = get_style_by_name(selected_style_name)
 
@@ -199,12 +213,6 @@ if download_and_extract_models():
                         caption="Ну, как вам?",
                         width=OUTPUT_SIZE,
                     )
-
-        # Текст внизу страницы
-        st.markdown(
-            '<p class="glory-text">For the glory of <a href="https://dls.samcs.ru/">DLS</a>!</p>',
-            unsafe_allow_html=True,
-        )
 
     except Exception as e:
         st.error(f"Произошла ошибка: {str(e)}")
