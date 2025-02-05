@@ -157,6 +157,7 @@ dmypy.json
 cython_debug/
 
 __MACOSX/
+.DS_Store
 
 *.pkl
 *.pt

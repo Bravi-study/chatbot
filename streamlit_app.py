@@ -12,35 +12,38 @@ import torch
 
 logging.basicConfig(level=logging.INFO)
 
-# Add after initial imports and before page config
 if "current_model" not in st.session_state:
     st.session_state.current_model = None
 if "current_style" not in st.session_state:
     st.session_state.current_style = None
 
-# Настройка страницы
 st.set_page_config(
     page_title="Impressionist StyleGAN",
     layout="wide",
 )
 
 # URL-адрес архива с моделями
-MODEL_URL = (
-    "https://www.dropbox.com/scl/fi/x83e02o8aycpssprx9kr9/"
-    "stylegan_models.zip?rlkey=rj3lgc1a7iqc0jvrs36judpre&dl=1"
-)
+MODEL_URL = "https://www.dropbox.com/s/0gvjrlnv7nplb3g/stylegan_models.zip?dl=1"
 PRETRAINED = "ffhq.pkl"
 OUTPUT_SIZE = 650
 
 # Словарь стилей с описанием
 STYLES = {
-    "IMPRESSIONISM": {
-        "name": "Импрессионизм",
+    "Импрессионизм": {
         "file": "photo_impressionist_portrait_trained_generator.pt",
+        "generated_name": "импрессионизма",
     },
-    "ANIME": {
-        "name": "Аниме",
+    "Аниме": {
         "file": "photo_anime_trained_generator.pt",
+        "generated_name": "аниме",
+    },
+    "Кубизм": {
+        "file": "photo_cubism_trained_generator.pt",
+        "generated_name": "кубизма",
+    },
+    "Масло": {
+        "file": "photo_oil_painting_trained_generator.pt",
+        "generated_name": "масляной живописи",
     },
 }
 
@@ -67,7 +70,6 @@ def download_and_extract_models():
     return True
 
 
-# Добавление пути к StyleGAN
 if "/stylegan" not in sys.path:
     sys.path.extend(["/stylegan", "stylegan"])
 
@@ -79,7 +81,6 @@ elif torch.mps.is_available():
 else:
     device = torch.device("cpu")
 
-# Обновляем CSS
 st.markdown(
     """
     <style>
@@ -184,23 +185,14 @@ def generate_image(model, device):
         return None
 
 
-def get_style_by_name(style_name: str) -> dict:
-    """Получение стиля по русскому названию"""
-    for style_data in STYLES.values():  # Изменено с keys() на items()
-        if style_data["name"] == style_name:
-            return style_data
-    return None
-
-
 # Основное приложение
 if download_and_extract_models():
     try:
         # Выбор стиля в боковой панели
         with st.sidebar:
             st.markdown("<br>" * 3, unsafe_allow_html=True)
-            style_names = [style["name"] for style in STYLES.values()]
             selected_style_name = st.selectbox(
-                "Стиль портрета", options=style_names, key="style_select"
+                "Стиль портрета", options=list(STYLES.keys()), key="style_select"
             )
             st.markdown(
                 "<div style='flex-grow: 1; min-height: 50vh'></div>", unsafe_allow_html=True
@@ -210,18 +202,16 @@ if download_and_extract_models():
                 unsafe_allow_html=True,
             )
 
-        selected_style = get_style_by_name(selected_style_name)
+        selected_style = STYLES[selected_style_name]
         model = load_model(selected_style["file"])
-        ending = "а" if selected_style_name != "Аниме" else ""
-        st.title(f"StyleGAN – генератор {selected_style_name.lower()}{ending}!")
+        st.title(f"StyleGAN – генератор {selected_style['generated_name']}!")
 
         if model is None:
             st.warning("Не удалось загрузить модель!")
         else:
             if st.button("Создать портрет", key="generate_btn"):
                 with st.spinner("Готовим шедевр..."):
-                    image = generate_image(model, device)
-                    if image is not None:
+                    if (image := generate_image(model, device)) is not None:
                         st.image(
                             image,
                             clamp=True,
