@@ -10,7 +10,7 @@ import torch
 
 torch.classes.__path__ = []
 
-MODEL_URL = "https://www.dropbox.com/s/mb2meuylasr23k0/stylegan_models.zip?dl=1"
+MODEL_URL = "https://link.storjshare.io/s/jwijcesxvdi2kyr7bjqmeaht4wqa/workspace/models.zip?wrap=0"
 PRETRAINED = "ffhq.pkl"
 OUTPUT_SIZE = 650
 
@@ -58,9 +58,10 @@ def download_and_extract_models():
             response = requests.get(MODEL_URL, stream=True)
             response.raise_for_status()
 
-            zip_path = "stylegan_models.zip"
+            zip_path = "models.zip"
             with open(zip_path, "wb") as f:
                 f.write(response.content)
+
             with ZipFile(zip_path) as zip_file:
                 zip_file.extractall()
             os.remove(zip_path)
