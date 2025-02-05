@@ -3,14 +3,24 @@ import logging
 import os
 import pickle
 import sys
-from io import BytesIO
+import warnings
 from zipfile import ZipFile
 
 import requests
 import streamlit as st
-import torch
 
-logging.basicConfig(level=logging.INFO)
+# Wrap torch import in warning context
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    import torch
+
+logging.basicConfig(
+    level=logging.INFO,
+    handlers=[logging.StreamHandler(sys.stdout)],  # Force stdout for streamlit
+)
+
+# Silence torch loading messages
+logging.getLogger("torch.loading").setLevel(logging.ERROR)
 
 if "current_style" not in st.session_state:
     st.session_state.current_style = None
@@ -18,7 +28,7 @@ if "generator" not in st.session_state:
     st.session_state.generator = None
 
 st.set_page_config(
-    page_title="Impressionist StyleGAN",
+    page_title="Impression StyleGAN",
     layout="wide",
 )
 
@@ -52,31 +62,29 @@ def download_and_extract_models():
     """Загрузка и распаковка файлов моделей"""
     style_files = [style["file"] for style in STYLES.values()]
     files_exist = all(os.path.exists(f) for f in style_files)
+    pkl_needed = not st.session_state.generator and not os.path.exists(PRETRAINED)
 
-    if files_exist:
+    if files_exist and not pkl_needed:
         return True
-    else:
-        try:
-            st.info("Загрузка моделей...")
-            response = requests.get(MODEL_URL, stream=True)
-            response.raise_for_status()
 
-            # Save zip file temporarily
-            zip_path = "stylegan_models.zip"
-            with open(zip_path, "wb") as f:
-                f.write(response.content)
+    try:
+        st.info("Загрузка моделей...")
+        response = requests.get(MODEL_URL, stream=True)
+        response.raise_for_status()
 
-            # Extract and then clean up
-            with ZipFile(zip_path) as zip_file:
-                zip_file.extractall()
+        # Save and extract zip
+        zip_path = "stylegan_models.zip"
+        with open(zip_path, "wb") as f:
+            f.write(response.content)
+        with ZipFile(zip_path) as zip_file:
+            zip_file.extractall()
+        os.remove(zip_path)
 
-            # Clean up temporary files
-            os.remove(zip_path)
-
-            st.success("Models downloaded and extracted successfully")
-        except Exception as e:
-            st.error(f"Ошибка загрузки моделей: {str(e)}")
-            return False
+        st.success("Models downloaded and extracted successfully")
+        return True
+    except Exception as e:
+        st.error(f"Ошибка загрузки моделей: {str(e)}")
+        return False
 
 
 if "/stylegan" not in sys.path:
@@ -124,7 +132,11 @@ def load_stylegan_generator():
     """Загрузка базовой модели StyleGAN"""
     try:
         if not st.session_state.generator:
-            with open("ffhq.pkl", "rb") as f:
+            if not os.path.exists(PRETRAINED):
+                st.error("База StyleGAN не найдена. Перезагрузите страницу.")
+                return None
+
+            with open(PRETRAINED, "rb") as f:
                 stylegan = pickle.load(f)
             generator = stylegan["G_ema"]
             generator.to(device)
@@ -141,10 +153,15 @@ def load_stylegan_generator():
 def load_model(model_file: str):
     """Загрузка обученной модели выбранного стиля"""
     try:
-        generator = st.session_state.generator or load_stylegan_generator()
-        checkpoint = torch.load(model_file, map_location=device)
-        generator.load_state_dict(checkpoint["generator_state_dict"])
-        generator.eval()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            generator = st.session_state.generator or load_stylegan_generator()
+            if generator is None:
+                return None
+
+            checkpoint = torch.load(model_file, map_location=device)
+            generator.load_state_dict(checkpoint["generator_state_dict"])
+            generator.eval()
 
     except Exception as e:
         st.error(f"Ошибка загрузки модели стиля {model_file}: {str(e)}")
