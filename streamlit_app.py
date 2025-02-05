@@ -1,4 +1,3 @@
-import gc
 import logging
 import os
 import pickle
@@ -9,14 +8,13 @@ from zipfile import ZipFile
 import requests
 import streamlit as st
 
-# Wrap torch import in warning context
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     import torch
 
 logging.basicConfig(
     level=logging.INFO,
-    handlers=[logging.StreamHandler(sys.stdout)],  # Force stdout for streamlit
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
 
 # Silence torch loading messages
@@ -68,19 +66,17 @@ def download_and_extract_models():
         return True
 
     try:
-        st.info("Загрузка моделей...")
-        response = requests.get(MODEL_URL, stream=True)
-        response.raise_for_status()
+        with st.spinner("Загрузка моделей..."):
+            response = requests.get(MODEL_URL, stream=True)
+            response.raise_for_status()
 
-        # Save and extract zip
-        zip_path = "stylegan_models.zip"
-        with open(zip_path, "wb") as f:
-            f.write(response.content)
-        with ZipFile(zip_path) as zip_file:
-            zip_file.extractall()
-        os.remove(zip_path)
+            zip_path = "stylegan_models.zip"
+            with open(zip_path, "wb") as f:
+                f.write(response.content)
+            with ZipFile(zip_path) as zip_file:
+                zip_file.extractall()
+            os.remove(zip_path)
 
-        st.success("Models downloaded and extracted successfully")
         return True
     except Exception as e:
         st.error(f"Ошибка загрузки моделей: {str(e)}")
@@ -177,7 +173,6 @@ def generate_image(device):
             ws = generator.mapping(z, None)
             images = generator.synthesis(ws, noise_mode="const")
 
-        # Сразу очищаем промежуточные тензоры
         del z, ws
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
@@ -190,7 +185,6 @@ def generate_image(device):
         )
         image = images[0].permute(1, 2, 0).add(1).div(2).cpu().numpy()
 
-        # Очищаем оставшиеся тензоры
         del images
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
