@@ -12,10 +12,10 @@ import torch
 
 logging.basicConfig(level=logging.INFO)
 
-if "current_model" not in st.session_state:
-    st.session_state.current_model = None
 if "current_style" not in st.session_state:
     st.session_state.current_style = None
+if "generator" not in st.session_state:
+    st.session_state.generator = None
 
 st.set_page_config(
     page_title="Impressionist StyleGAN",
@@ -23,7 +23,7 @@ st.set_page_config(
 )
 
 # URL-адрес архива с моделями
-MODEL_URL = "https://www.dropbox.com/s/0gvjrlnv7nplb3g/stylegan_models.zip?dl=1"
+MODEL_URL = "https://www.dropbox.com/s/mb2meuylasr23k0/stylegan_models.zip?dl=1"
 PRETRAINED = "ffhq.pkl"
 OUTPUT_SIZE = 650
 
@@ -50,24 +50,33 @@ STYLES = {
 
 def download_and_extract_models():
     """Загрузка и распаковка файлов моделей"""
-    # Проверка наличия всех необходимых файлов
-    required_files = [PRETRAINED] + [style["file"] for style in STYLES.values()]
-    files_exist = all(os.path.exists(f) for f in required_files)
+    style_files = [style["file"] for style in STYLES.values()]
+    files_exist = all(os.path.exists(f) for f in style_files)
 
-    if not files_exist:
+    if files_exist:
+        return True
+    else:
         try:
             st.info("Загрузка моделей...")
             response = requests.get(MODEL_URL, stream=True)
             response.raise_for_status()
 
-            with ZipFile(BytesIO(response.content)) as zip_file:
+            # Save zip file temporarily
+            zip_path = "stylegan_models.zip"
+            with open(zip_path, "wb") as f:
+                f.write(response.content)
+
+            # Extract and then clean up
+            with ZipFile(zip_path) as zip_file:
                 zip_file.extractall()
+
+            # Clean up temporary files
+            os.remove(zip_path)
 
             st.success("Models downloaded and extracted successfully")
         except Exception as e:
             st.error(f"Ошибка загрузки моделей: {str(e)}")
             return False
-    return True
 
 
 if "/stylegan" not in sys.path:
@@ -114,51 +123,42 @@ st.markdown(
 def load_stylegan_generator():
     """Загрузка базовой модели StyleGAN"""
     try:
-        with open("ffhq.pkl", "rb") as f:
-            stylegan = pickle.load(f)
-        # Получаем базовую модель
-        generator = stylegan["G_ema"]
-        generator.to(device)
-        generator.eval()
-        return generator
+        if not st.session_state.generator:
+            with open("ffhq.pkl", "rb") as f:
+                stylegan = pickle.load(f)
+            generator = stylegan["G_ema"]
+            generator.to(device)
+            generator.eval()
+            st.session_state.generator = generator
+
+        return st.session_state.generator
+
     except Exception as e:
         st.error(f"Ошибка загрузки базовой модели: {str(e)}")
         return None
 
 
-@st.cache_resource(max_entries=1)
 def load_model(model_file: str):
     """Загрузка обученной модели выбранного стиля"""
     try:
-        # Очищаем память если загружаем новую модель
-        if st.session_state.current_model is not None:
-            del st.session_state.current_model
-            gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-
-        model = load_stylegan_generator()
-        if model is None:
-            return None
-
+        generator = st.session_state.generator or load_stylegan_generator()
         checkpoint = torch.load(model_file, map_location=device)
-        model.load_state_dict(checkpoint["generator_state_dict"])
-        model.eval()
+        generator.load_state_dict(checkpoint["generator_state_dict"])
+        generator.eval()
 
-        st.session_state.current_model = model
-        return model
     except Exception as e:
         st.error(f"Ошибка загрузки модели стиля {model_file}: {str(e)}")
         return None
 
 
-def generate_image(model, device):
+def generate_image(device):
     """Выделенная функция генерации изображения для лучшего управления памятью"""
     try:
+        generator = st.session_state.generator
         z = torch.randn(1, 512, device=device)
         with torch.no_grad():
-            ws = model.mapping(z, None)
-            images = model.synthesis(ws, noise_mode="const")
+            ws = generator.mapping(z, None)
+            images = generator.synthesis(ws, noise_mode="const")
 
         # Сразу очищаем промежуточные тензоры
         del z, ws
@@ -203,21 +203,25 @@ if download_and_extract_models():
             )
 
         selected_style = STYLES[selected_style_name]
-        model = load_model(selected_style["file"])
+
+        if st.session_state.current_style != selected_style_name:
+            st.session_state.current_style = selected_style_name
+            load_model(selected_style["file"])
+
         st.title(f"StyleGAN – генератор {selected_style['generated_name']}!")
 
-        if model is None:
-            st.warning("Не удалось загрузить модель!")
-        else:
+        if st.session_state.generator:
             if st.button("Создать портрет", key="generate_btn"):
                 with st.spinner("Готовим шедевр..."):
-                    if (image := generate_image(model, device)) is not None:
+                    if (image := generate_image(device)) is not None:
                         st.image(
                             image,
                             clamp=True,
                             caption="Ну, как вам?",
                             width=OUTPUT_SIZE,
                         )
+        else:
+            st.warning("Не удалось загрузить модель!")
 
     except Exception as e:
         st.error(f"Произошла ошибка: {str(e)}")
