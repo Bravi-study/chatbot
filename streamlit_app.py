@@ -1,4 +1,3 @@
-import logging
 import os
 import pickle
 import sys
@@ -7,35 +6,14 @@ from zipfile import ZipFile
 
 import requests
 import streamlit as st
+import torch
 
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
-    import torch
+torch.classes.__path__ = []
 
-logging.basicConfig(
-    level=logging.INFO,
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
-
-# Silence torch loading messages
-logging.getLogger("torch.loading").setLevel(logging.ERROR)
-
-if "current_style" not in st.session_state:
-    st.session_state.current_style = None
-if "generator" not in st.session_state:
-    st.session_state.generator = None
-
-st.set_page_config(
-    page_title="Impression StyleGAN",
-    layout="wide",
-)
-
-# URL-адрес архива с моделями
 MODEL_URL = "https://www.dropbox.com/s/mb2meuylasr23k0/stylegan_models.zip?dl=1"
 PRETRAINED = "ffhq.pkl"
 OUTPUT_SIZE = 650
 
-# Словарь стилей с описанием
 STYLES = {
     "Импрессионизм": {
         "file": "photo_impressionist_portrait_trained_generator.pt",
@@ -54,6 +32,16 @@ STYLES = {
         "generated_name": "масляной живописи",
     },
 }
+
+if "current_style" not in st.session_state:
+    st.session_state.current_style = None
+if "generator" not in st.session_state:
+    st.session_state.generator = None
+
+st.set_page_config(
+    page_title="Impression StyleGAN",
+    layout="wide",
+)
 
 
 def download_and_extract_models():
