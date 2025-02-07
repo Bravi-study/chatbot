@@ -10,7 +10,7 @@ import torch
 
 torch.classes.__path__ = []
 
-MODEL_URL = "https://link.storjshare.io/s/jwijcesxvdi2kyr7bjqmeaht4wqa/workspace/models.zip?wrap=0"
+MODEL_URL = "https://www.dropbox.com/scl/fi/mq4xitd9x66kvg62f8gxf/models.zip?rlkey=9o3d192fqkolrioez7xb1da3j&st=e8bhcuwg&dl=1"
 PRETRAINED = "ffhq.pkl"
 OUTPUT_SIZE = 650
 
