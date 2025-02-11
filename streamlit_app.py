@@ -10,7 +10,7 @@ import torch
 
 torch.classes.__path__ = []
 
-MODEL_URL = "https://www.dropbox.com/scl/fi/mq4xitd9x66kvg62f8gxf/models.zip?rlkey=9o3d192fqkolrioez7xb1da3j&st=e8bhcuwg&dl=1"
+MODEL_URL = "https://www.dropbox.com/scl/fi/mq4xitd9x66kvg62f8gxf/models.zip?rlkey=9o3d192fqkolrioez7xb1da3j&dl=1"
 PRETRAINED = "ffhq.pkl"
 OUTPUT_SIZE = 650
 
@@ -19,14 +19,14 @@ STYLES = {
         "file": "photo_impressionist_portrait_trained_generator.pt",
         "generated_name": "импрессионизма",
     },
-    "Аниме": {
-        "file": "photo_anime_trained_generator.pt",
-        "generated_name": "аниме",
-    },
-    "Кубизм": {
-        "file": "photo_cubism_trained_generator.pt",
-        "generated_name": "кубизма",
-    },
+    # "Аниме": {
+    #     "file": "photo_anime_trained_generator.pt",
+    #     "generated_name": "аниме",
+    # },
+    # "Кубизм": {
+    #     "file": "photo_cubism_trained_generator.pt",
+    #     "generated_name": "кубизма",
+    # },
     "Масло": {
         "file": "photo_oil_painting_trained_generator.pt",
         "generated_name": "масляной живописи",
